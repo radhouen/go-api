@@ -1,12 +1,11 @@
-package main
+package Controllers
 
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
-	"goTutorial/src/Models"
+	"goTutorial/Models"
 	"log"
 	"net/http"
 	"strconv"
@@ -16,28 +15,16 @@ import (
 var books []Models.Book
 
 // Get all books
-func getBooks(w http.ResponseWriter, r *http.Request) {
+func GetBooks(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	db := dbConnect()
 	json.NewEncoder(w).Encode(db.Find(&books))
 }
-func dbConnect() *gorm.DB {
-	db, err := gorm.Open("mysql", "root:@(localhost:3306)/test?charset=utf8&parseTime=True&loc=Local")
-	if err != nil {
-		//defer db.Close()
-		fmt.Println(err)
-	}
-	return db
 
-}
-func migration() {
-	db := dbConnect()
-	db.AutoMigrate(&Models.Book{})
-	db.AutoMigrate(&Models.Author{})
-}
+
 
 // Get single book
-func getBook(w http.ResponseWriter, r *http.Request) {
+func GetBook(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	// Gets params
 	// Loop through books and find one with the id from the params
@@ -55,7 +42,7 @@ func getBook(w http.ResponseWriter, r *http.Request) {
 }
 
 // Add new book
-func createBook(w http.ResponseWriter, r *http.Request) {
+func CreateBook(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	decoder := json.NewDecoder(r.Body)
 	var book Models.Book
@@ -63,8 +50,7 @@ func createBook(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	log.Println("new book :" , book)
-
+	log.Println("new book :", book)
 
 	db := dbConnect()
 	db.NewRecord(book)
@@ -75,7 +61,7 @@ func createBook(w http.ResponseWriter, r *http.Request) {
 }
 
 // Update book
-func updateBook(w http.ResponseWriter, r *http.Request) {
+func UpdateBook(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)
 	for index, item := range books {
@@ -96,7 +82,7 @@ func updateBook(w http.ResponseWriter, r *http.Request) {
 }
 
 // Delete book
-func deleteBook(w http.ResponseWriter, r *http.Request) {
+func DeleteBook(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)
 	for index, item := range books {
@@ -110,25 +96,4 @@ func deleteBook(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	json.NewEncoder(w).Encode(books)
-}
-
-// Main function
-func main() {
-	// Init router
-	migration()
-	r := mux.NewRouter()
-
-	// Hardcoded data - @todo: add database
-	books = append(books, Models.Book{ Isbn: "438227", Title: "Book One"})
-	books = append(books, Models.Book{ Isbn: "454555", Title: "Book Two"})
-	books = append(books, Models.Book{ Isbn: "454555", Title: "Book Two"})
-	// Route handles & endpoints
-	r.HandleFunc("/books", getBooks).Methods("GET")
-	r.HandleFunc("/books/{id}", getBook).Methods("GET")
-	r.HandleFunc("/books", createBook).Methods("POST")
-	r.HandleFunc("/books/{id}", updateBook).Methods("PUT")
-	r.HandleFunc("/books/{id}", deleteBook).Methods("DELETE")
-
-	// Start server
-	log.Fatal(http.ListenAndServe(":1230", r))
 }
